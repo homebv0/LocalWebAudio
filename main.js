@@ -20,7 +20,7 @@ let isRunning = false;
 
 export async function startListen() 
 {
-    if (running) return;
+    if (isRunning) return;
     isRunning = true;
     keepWake();
 
@@ -53,7 +53,7 @@ export async function startListen()
 }
 
 export function stopListen() {
-    if (!running) return;
+    if (!isRunning) return;
     isRunning = false;
 
     ws?.close();
