@@ -1,4 +1,4 @@
-import { keepWake, letSleep } from "./wake-lock";
+import { keepWake, letSleep } from "./wake-lock.js";
 
 const toggle = document.getElementById("theToggle");
 const url = document.getElementById("theURL");
