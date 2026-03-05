@@ -7,10 +7,13 @@
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <h1>PCM Audio WebSocket Player</h1>
-    <input type="text" id="audioInput" placeholder="Enter PCM audio data" />
-    <button id="toggleButton">Start Listening</button>
+    <label>Local URL:</label>
+    <input id="theURL" type="url" value="ws://192.168.1.1:5000"/>
+    <button id="theToggle">Start</button>
 
-    <script src="main.js"></script>
+    <script type="module">
+        import { main } from "main.js";
+        main();
+    </script>
 </body>
 </html>

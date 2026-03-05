@@ -1,77 +1,66 @@
-const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-let isPlaying = false;
-let sourceNode;
-let websocket;
+import { keepWake, letSleep } from "./wake-lock";
 
-const inputElement = document.createElement('input');
-inputElement.type = 'text';
-inputElement.placeholder = 'Enter PCM audio data';
-document.body.appendChild(inputElement);
+const toggle = document.getElementById("theToggle");
+const url = document.getElementById("theURL");
 
-const toggleButton = document.createElement('button');
-toggleButton.textContent = 'Start Listening';
-document.body.appendChild(toggleButton);
-
-toggleButton.addEventListener('click', () => {
-    if (isPlaying) {
-        stopListening();
-    } else {
-        startListening();
-    }
-});
-
-function startListening() {
-    websocket = new WebSocket('ws://your-websocket-url');
-
-    websocket.onopen = () => {
-        console.log('WebSocket connection established');
-        isPlaying = true;
-        toggleButton.textContent = 'Stop Listening';
-        keepScreenAwake();
-    };
-
-    websocket.onmessage = (event) => {
-        const audioData = new Float32Array(event.data);
-        playAudio(audioData);
-    };
-
-    websocket.onclose = () => {
-        console.log('WebSocket connection closed');
-        stopListening();
-    };
+export function main()
+{
+    toggle.onclick = () => startStop();
 }
 
-function stopListening() {
-    if (websocket) {
-        websocket.close();
-    }
-    if (sourceNode) {
-        sourceNode.stop();
-        sourceNode.disconnect();
-        sourceNode = null;
-    }
-    isPlaying = false;
-    toggleButton.textContent = 'Start Listening';
+
+let audio;
+let node;
+let ws;
+let isRunning = false;
+
+export async function startListen() 
+{
+    if (running) return;
+    isRunning = true;
+    keepWake();
+
+    audio = new AudioContext();
+    await audio.audioWorklet.addModule("pcm-player.js");
+
+    node = new AudioWorkletNode(audio, "pcm-player");
+    node.connect(audio.destination);
+
+    ws = new WebSocket(`${url.value}/pcm`);
+    ws.binaryType = "arraybuffer";
+
+    ws.onmessage = (ev) => {
+        if (typeof ev.data === "string") {
+            const meta = JSON.parse(ev.data);
+            node.port.postMessage({ channels: meta.channels });
+            return;
+        }
+        node.port.postMessage(ev.data);
+    };
+
+    ws.onclose = () => {
+        isRunning = false;
+        letSleep();
+    };
+
+    await audio.resume();
+
+    toggle.textContent = "Stop";
 }
 
-function playAudio(audioData) {
-    if (sourceNode) {
-        sourceNode.stop();
-        sourceNode.disconnect();
-    }
-    sourceNode = audioContext.createBufferSource();
-    const audioBuffer = audioContext.createBuffer(1, audioData.length, audioContext.sampleRate);
-    audioBuffer.copyToChannel(audioData, 0);
-    sourceNode.buffer = audioBuffer;
-    sourceNode.loop = true;
-    sourceNode.connect(audioContext.destination);
-    sourceNode.start(0);
+export function stopListen() {
+    if (!running) return;
+    isRunning = false;
+
+    ws?.close();
+    node?.disconnect();
+    audio?.close();
+    letSleep();
+    toggle.textContent = "Start";
 }
 
-function keepScreenAwake() {
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(keepScreenAwake);
-    } else {
-        setTimeout(keepScreenAwake, 1000);
-    }
+function startStop()
+{
+    if (isRunning) { stopListen(); }
+    else { startListen(); }
 }
