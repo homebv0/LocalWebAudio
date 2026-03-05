@@ -6,6 +6,9 @@ const url = document.getElementById("theURL");
 export function main()
 {
     toggle.onclick = () => startStop();
+
+    url.value = localStorage.getItem("url");
+    url.onchange = () => { localStorage.setItem("url", url.value); }
 }
 
 
