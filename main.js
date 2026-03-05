@@ -7,7 +7,8 @@ export function main()
 {
     toggle.onclick = () => startStop();
 
-    url.value = localStorage.getItem("url");
+    let x = localStorage.getItem("url");
+    if (x != null) { url.value = x; }
     url.onchange = () => { localStorage.setItem("url", url.value); }
 }
 
